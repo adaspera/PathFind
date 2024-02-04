@@ -1,0 +1,37 @@
+﻿@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+@page "/"
+<PageTitle>Index</PageTitle>
+
+<div id ="map"></div>
+
+<style>
+    #map {
+        width: inherit;
+        height: 100vh;
+    }
+</style>
+
+@code {
+    private IJSObjectReference? module;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./MapScript.js");
+            if(module != null)
+            {
+                await module.InvokeVoidAsync("loadMap");
+            }
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+    
+}

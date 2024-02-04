@@ -1,0 +1,87 @@
+export function loadMap() {
+
+    let map = L.map('map').setView({ lon: 26.097133, lat: 44.446165 }, 16);
+    L.tileLayer('https://tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=d5a33e90e15d47bcbaab5c8d50d29d95', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var routeControl = null;
+    var initialised = 0;
+
+    map.on('click', function (e) {
+        //var waypoints = routeControl.getWaypoints();
+
+        if (routeControl == null) {
+            routeControl = L.Routing.control({ waypoints: [e.latlng] }).addTo(map);
+           
+        }
+        else if (initialised == 0) {
+            routeControl.spliceWaypoints(1, 1, e.latlng); //becouse it fills second waypoint with null value;
+            routeControl.route();
+            initialised = 1;
+        }
+        else {
+            routeControl.spliceWaypoints(routeControl.getWaypoints().length, 0, e.latlng);
+        }
+        forEach(function (element, index) {
+            element.on('click', function (e) {
+                console.log("AAAA");
+                element.getWaypoints().spliceWaypoints(index, 1);
+            });
+        });
+        
+    });
+
+
+/*    routeControl = L.Routing.control({ waypoints: [L.latLng(50, 50), L.latLng(50, 50.1)] }).addTo(map);
+    routeControl.spliceWaypoints(routeControl.getWaypoints().length, 0, L.latLng(50, 50.2));
+    console.log(routeControl.getWaypoints());*/
+
+/*    map.on('click', function (e) {
+        var marker = L.marker(e.latlng).addTo(map);
+        markerArray.push(marker);
+
+        if (markerArray.length >= 2 && route == null) {
+            calculateRoute();
+        } else if (route != null) {
+            updateRoute(marker);
+            map.removeLayer(marker);
+        } else {
+            marker.on('click', function () {
+                map.removeLayer(marker);
+                markerArray = markerArray.filter(m => m !== marker);
+            });
+        }
+
+    });
+
+    return null;
+
+    function calculateRoute() {
+
+        var points = markerArray.map(marker => marker.getLatLng());
+
+        route = L.Routing.control({
+            waypoints: points
+        }).addTo(map);
+
+
+        //deletes base markers, since routing control is used
+        markerArray.forEach(marker => map.removeLayer(marker));
+    }
+
+    function updateRoute(marker) {
+        var wayPoints = route.getWaypoints();
+        wayPoints.push(marker);
+
+        wayPoints = route.getWaypoints();
+        wayPoints.on('click', function () {
+            var index = wayPoints.findIndex(wp => wp.latlng.equals(marker.getLatLng()));
+            if (index !== -1) {
+                route.spliceWaypoints(index, 1);
+            }
+        });
+        
+    }*/
+}
+

@@ -1,0 +1,122 @@
+﻿@using System.Timers
+@inject IHttpClientFactory HttpClientFactory
+@using Models
+@using Newtonsoft.Json
+@using Path.Services
+
+<div class="dropdown">
+    <input class="dropdown-toggle" @oninput="@OnInputChanged"/>
+    <div class="dropdown-menu scrollable-menu" style="@menuStyle" aria-labelledby="dropdownMenuButton">
+        @if (SearchTerm.Length > 2)
+        {
+            @foreach (var location in locations)
+            {
+                <a class="dropdown-item" @onclick="() => SelectLocation(location)">@location.Name</a>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<Location> OnLocationSelected { get; set; }
+    
+    private List<Location>? locations = new List<Location>();
+    private string menuStyle => searchTerm.Length > 2 ? "display:block;" : "display:none;";
+
+    [Inject]
+    public ApiService ApiService { get; set; }
+
+    private HttpClient httpClient;
+    
+    private Timer timer;
+
+    private string searchTerm ="";
+    private string SearchTerm
+    {
+        get => searchTerm;
+        set
+        {
+            if (value != searchTerm)
+            {
+                Console.WriteLine("a");
+                searchTerm = value;
+                DisposeTimer();
+                timer = new Timer(300);
+                timer.Elapsed += SearchEvent;
+                timer.AutoReset = false;
+                timer.Start();
+            }
+        }
+    }
+    
+    private void OnInputChanged(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value.ToString();
+    }
+    
+    private async void SearchEvent(object sender, ElapsedEventArgs e)
+    {
+        Console.WriteLine("b");
+        DisposeTimer();
+        await SearchAsync(searchTerm);
+    }
+    
+    private void DisposeTimer()
+    {
+        if (timer != null)
+        {
+            timer.Stop();
+            timer.Elapsed -= SearchEvent;
+            timer.Dispose();
+        }
+    }
+    
+    private async Task SearchAsync(string searchTerm)
+    {
+        Console.WriteLine("c");
+        if (searchTerm.Length > 2)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, $"LocationSearch/{searchTerm}");
+                var response = await httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    locations = JsonConvert.DeserializeObject<List<Location>>(content);
+                    Console.WriteLine("d");
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {response.StatusCode}");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Request failed: {e.Message}");
+            }
+
+            InvokeAsync(StateHasChanged); // Ensure UI updates on main thread
+            Console.WriteLine("e");
+        }
+        else
+        {
+            locations.Clear();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = HttpClientFactory.CreateClient();
+        httpClient.BaseAddress = new Uri("http://localhost:5137/");
+    }
+    
+    
+    public void SelectLocation(Location location)
+    {
+        OnLocationSelected.InvokeAsync(location);
+    }
+}
